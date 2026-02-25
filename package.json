@@ -1,0 +1,22 @@
+{
+  "name": "selectorshub-playwright",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.3.0",
+    "allure-playwright": "^3.4.5",
+    "eslint": "^10.0.2",
+    "globals": "^17.3.0",
+    "prettier": "^3.8.1"
+  }
+}
