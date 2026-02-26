@@ -1,0 +1,128 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Sai Hemanth",
+      "role": "Admin"
+    },
+    {
+      "id": 2,
+      "name": "John QA",
+      "role": "Tester"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Laptop",
+      "price": 1200
+    },
+    {
+      "id": 2,
+      "name": "Phone",
+      "price": 800
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 3
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 4
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 5
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 6
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 7
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 8
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 9
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 10
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 11
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 12
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 13
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 14
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 15
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 16
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 17
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 18
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 19
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 20
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 21
+    }
+  ],
+  "dashboard": {
+    "title": "QA Dashboard",
+    "version": "1.0"
+  },
+  "approval": {
+    "approved": false
+  }
+}
