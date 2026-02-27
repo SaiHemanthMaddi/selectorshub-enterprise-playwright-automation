@@ -75,10 +75,34 @@ jobs:
             SPECS+=("$1")
           }
 
+          is_fixture_import_only_change() {
+            local file="$1"
+            local diff_lines filtered
+
+            if [[ "$file" != tests/*.spec.js && "$file" != tests/**/*.spec.js ]]; then
+              return 1
+            fi
+
+            diff_lines=$(git diff -U0 "$BASE_SHA" "$HEAD_SHA" -- "$file" | grep -E '^[+-]' | grep -Ev '^\+\+\+|^---' || true)
+            if [[ -z "$diff_lines" ]]; then
+              return 1
+            fi
+
+            filtered=$(echo "$diff_lines" | grep -Ev "^[+-]import \{ test, expect \} from '\.?\.?/fixtures/test-base\.js';$|^[+-][[:space:]]*$" || true)
+            [[ -z "$filtered" ]]
+          }
+
           for file in "${CHANGED_FILES[@]}"; do
+            if is_fixture_import_only_change "$file"; then
+              continue
+            fi
+
             case "$file" in
               package.json|package-lock.json|playwright.config.js|eslint.config.mjs|.prettierrc|.github/workflows/playwright.yml)
                 RUN_ALL=true
+                ;;
+              tests/fixtures/*|utils/domSnapshot.js)
+                add_spec "tests/smoke/smoke.spec.js"
                 ;;
               tests/network/*|modules/network/*|utils/networkManager.js)
                 add_spec "tests/network/network.spec.js"
