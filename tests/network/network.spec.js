@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 import { mockUsersApi, mockServerError, slowApi } from '../../modules/network/mock-api';
 import { injectProduct } from '../../modules/network/intercept-api';
 import { blockImages } from '../../modules/network/block-requests';
@@ -158,3 +158,4 @@ test.describe('@network Network Module', () => {
     });
 
 });
+

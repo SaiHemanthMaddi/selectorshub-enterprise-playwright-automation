@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 import { ComplexPage } from '../../pages/complex.page';
 
 test.skip(({ browserName }) => browserName === 'firefox', 'Firefox CSS selector instability');
@@ -39,3 +39,4 @@ test.describe('@complex Complex Elements Module', () => {
         await expect(complexPage.trickyButton).toBeVisible({ timeout: 10000 });
     });
 });
+

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 
 /*test.skip(
   ({ browserName }) => browserName === 'firefox',
@@ -61,3 +61,5 @@ test.describe('@xpath Stable XPath Module', () => {
         expect(count).toBeGreaterThan(5);
     });
 });
+
+

@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 
 async function waitForFrame(page, predicate, timeout = 15000) {
     await expect
@@ -61,3 +61,5 @@ test.describe('@iframe Iframe Scenario - Core Tests', () => {
         await expect.poll(async () => pact3Frame.title(), { timeout: 15000 }).toContain('SelectorsHub');
     });
 });
+
+

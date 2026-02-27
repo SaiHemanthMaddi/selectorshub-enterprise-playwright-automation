@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 import { ShadowPage } from '../../pages/shadow.page';
 import { getFrameInsideShadow } from '../../utils/shadow.utils';
 
@@ -69,3 +69,5 @@ test.describe('@shadow Shadow DOM Module', () => {
     `);
   });
 });
+
+

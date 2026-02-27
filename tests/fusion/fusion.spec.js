@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 import { createFusionUsers, cleanupFusion } from '../../modules/advanced/fusion/fusion-manager.js';
 import { adminInjectProduct } from '../../modules/advanced/fusion/fusion-interceptors.js';
 import { adminBlockUsers } from '../../modules/advanced/fusion/fusion-interceptors.js';
@@ -168,3 +168,5 @@ test.describe('@fusion Multi-User Network Fusion', () => {
         await cleanupFusion(users);
     });
 });
+
+

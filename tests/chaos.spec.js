@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test-base.js';
 import { injectRandomLatency } from '../modules/advanced/chaos/chaos-network.js';
 import { injectRandomFailures } from '../modules/advanced/chaos/chaos-network.js';
 import { degradeAssets } from '../modules/advanced/chaos/chaos-network.js';
@@ -103,3 +103,5 @@ test.describe('@chaos Network Chaos Module', () => {
         await context.close();
     });
 });
+
+

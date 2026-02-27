@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-base.js';
 import { createUsers, closeUsers } from '../../modules/multi-user/multi-user-manager.js';
 
 async function gotoWithRetry(page, path = '/', attempts = 3) {
@@ -192,3 +192,5 @@ test.describe('@multiuser Multi-User Module', () => {
         await closeUsers(users);
     });
 });
+
+

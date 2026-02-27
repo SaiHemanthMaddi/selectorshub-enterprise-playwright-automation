@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test-base.js';
 import { createHarContext } from '../modules/advanced/har/har-replay.js';
 
 test.describe('@har HAR Replay Module', () => {
@@ -32,3 +32,5 @@ test.describe('@har HAR Replay Module', () => {
         await context2.close();
     });
 });
+
+
