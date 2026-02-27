@@ -1,4 +1,5 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [main, master]
@@ -6,22 +7,28 @@ on:
     branches: [main, master]
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: "0 3 * * *"
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+
       - name: Install dependencies
         run: npm ci
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+
       - name: Decide Test Scope
         id: scope
         shell: bash
@@ -29,45 +36,43 @@ jobs:
           set -euo pipefail
 
           EVENT_NAME="${{ github.event_name }}"
+          HEAD_SHA="${{ github.sha }}"
+          BASE_SHA=""
 
           if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
             echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
-            echo "reason=Scheduled/manual run -> full regression" >> "$GITHUB_OUTPUT"
+            echo "reason=Scheduled/manual run: full regression" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
-          BASE=""
-          HEAD="${{ github.sha }}"
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
           elif [[ "$EVENT_NAME" == "push" ]]; then
-            BASE="${{ github.event.before }}"
+            BASE_SHA="${{ github.event.before }}"
           fi
 
-          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
             echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
-            echo "reason=No valid base SHA -> full regression" >> "$GITHUB_OUTPUT"
+            echo "reason=Missing base commit: full regression" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE" "$HEAD")
+          mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
 
           if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
             echo "run_tests=false" >> "$GITHUB_OUTPUT"
             echo "test_cmd=" >> "$GITHUB_OUTPUT"
-            echo "reason=No changed files detected" >> "$GITHUB_OUTPUT"
+            echo "reason=No changed files" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          declare -A SPEC_SET=()
           RUN_ALL=false
+          SPECS=()
 
           add_spec() {
-            local spec="$1"
-            SPEC_SET["$spec"]=1
+            SPECS+=("$1")
           }
 
           for file in "${CHANGED_FILES[@]}"; do
@@ -111,36 +116,39 @@ jobs:
           if [[ "$RUN_ALL" == "true" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
             echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
-            echo "reason=Core config/dependency change -> full regression" >> "$GITHUB_OUTPUT"
+            echo "reason=Core config/dependency changed: full regression" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [[ ${#SPEC_SET[@]} -eq 0 ]]; then
+          if [[ ${#SPECS[@]} -eq 0 ]]; then
             echo "run_tests=false" >> "$GITHUB_OUTPUT"
             echo "test_cmd=" >> "$GITHUB_OUTPUT"
-            echo "reason=Docs/non-test-impacting change -> skip Playwright" >> "$GITHUB_OUTPUT"
+            echo "reason=No impacted Playwright module" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
+          UNIQUE_SPECS=$(printf "%s\n" "${SPECS[@]}" | sort -u)
           TEST_CMD="npx playwright test"
-          for spec in "${!SPEC_SET[@]}"; do
-            TEST_CMD="$TEST_CMD $spec"
-          done
+          while IFS= read -r spec; do
+            [[ -n "$spec" ]] && TEST_CMD="$TEST_CMD $spec"
+          done <<< "$UNIQUE_SPECS"
 
           echo "run_tests=true" >> "$GITHUB_OUTPUT"
           echo "test_cmd=$TEST_CMD" >> "$GITHUB_OUTPUT"
-          echo "reason=Changed module scoped run" >> "$GITHUB_OUTPUT"
+          echo "reason=Scoped run for changed modules" >> "$GITHUB_OUTPUT"
 
       - name: Run Playwright tests
-        if: steps.scope.outputs.run_tests == 'true'
+        if: ${{ steps.scope.outputs.run_tests == 'true' }}
         shell: bash
         run: |
           echo "Running: ${{ steps.scope.outputs.test_cmd }}"
           ${{ steps.scope.outputs.test_cmd }}
 
       - name: Skip Note
-        if: steps.scope.outputs.run_tests != 'true'
-        run: echo "Skipping Playwright run. Reason: ${{ steps.scope.outputs.reason }}"
+        if: ${{ steps.scope.outputs.run_tests != 'true' }}
+        run: |
+          echo "Skipping Playwright run. Reason: ${{ steps.scope.outputs.reason }}"
+
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && steps.scope.outputs.run_tests == 'true' }}
         with:
