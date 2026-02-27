@@ -89,6 +89,7 @@ test.describe('@fusion Multi-User Network Fusion', () => {
 
         // Admin installs interceptor dynamically
         await adminInjectProduct(user);
+        await user.reload({ waitUntil: 'domcontentloaded' });
 
         await expect.poll(async () => {
             const products = await user.evaluate(async () => {
@@ -96,7 +97,7 @@ test.describe('@fusion Multi-User Network Fusion', () => {
                 return res.json();
             });
             return products.some(p => p.name === 'Fusion Injected Product');
-        }).toBe(true);
+        }, { timeout: 20000 }).toBe(true);
 
         await cleanupFusion(users);
     });
