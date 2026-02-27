@@ -92,7 +92,7 @@ jobs:
               tests/chaos.spec.js|modules/advanced/chaos/*)
                 add_spec "tests/chaos.spec.js"
                 ;;
-              tests/har.spec.js|modules/advanced/har/*)
+              tests/har.spec.js|modules/advanced/har/*|mock.har)
                 add_spec "tests/har.spec.js"
                 ;;
               tests/iframe/*|pages/iframe.page.js|utils/frame.utils.js)
