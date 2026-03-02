@@ -206,6 +206,31 @@
       "name": "Tablet",
       "price": 600,
       "id": 39
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 40
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 41
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 42
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 43
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "id": 44
     }
   ],
   "dashboard": {
