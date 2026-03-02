@@ -15,6 +15,29 @@ async function gotoWithRetry(page, path = '/', attempts = 3) {
     }
 }
 
+async function putApprovalWithRetry(page, approved, attempts = 3) {
+    return page.evaluate(async ({ approved, attempts }) => {
+        let lastError = null;
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const res = await fetch('/approval', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approved }),
+                });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return true;
+            } catch (error) {
+                lastError = error;
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        }
+        throw lastError ?? new Error('Approval update failed');
+    }, { approved, attempts });
+}
+
 test.describe('@multiuser Multi-User Module', () => {
 
     test('@multiuser Admin approves user action', async ({ browser }) => {
@@ -96,37 +119,26 @@ test.describe('@multiuser Multi-User Module', () => {
 
     test('@flaky @multiuser Concurrent approval overwrite', async ({ browser }) => {
         const users = await createUsers(browser, ['admin1', 'admin2']);
+        try {
+            const a1 = users.admin1.page;
+            const a2 = users.admin2.page;
 
-        const a1 = users.admin1.page;
-        const a2 = users.admin2.page;
+            await Promise.all([gotoWithRetry(a1), gotoWithRetry(a2)]);
 
-        await Promise.all([gotoWithRetry(a1), gotoWithRetry(a2)]);
+            await Promise.all([
+                putApprovalWithRetry(a1, true),
+                putApprovalWithRetry(a2, false),
+            ]);
 
-        await Promise.all([
-            a1.evaluate(() =>
-                fetch('/approval', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ approved: true })
-                })
-            ),
-            a2.evaluate(() =>
-                fetch('/approval', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ approved: false })
-                })
-            )
-        ]);
+            const final = await a1.evaluate(async () => {
+                const res = await fetch('/approval');
+                return (await res.json()).approved;
+            });
 
-        const final = await a1.evaluate(async () => {
-            const res = await fetch('/approval');
-            return (await res.json()).approved;
-        });
-
-        expect(typeof final).toBe('boolean');
-
-        await closeUsers(users);
+            expect(typeof final).toBe('boolean');
+        } finally {
+            await closeUsers(users);
+        }
     });
 
     test('@multiuser Admin adds product visible to user', async ({ browser }) => {
