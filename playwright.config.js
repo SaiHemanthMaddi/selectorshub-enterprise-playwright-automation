@@ -18,13 +18,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [['html'], ['allure-playwright'], ['line'], ['list']],
+  reporter: [['html'], ['allure-playwright'], ['line'], ['list'],['json',{ outputFile: 'test-results/results.json' }]],
   use: {
     baseURL: 'http://127.0.0.1:3000',
     headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
   },
 
   projects: [
