@@ -1,4 +1,5 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [main, master]
@@ -7,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       browser:
-        description: "Browser to run on (manual runs)"
+        description: "Browser to run (manual runs)"
         required: true
         default: "chromium"
         type: choice
@@ -33,37 +34,186 @@ on:
           - tests/xpath/xpath.spec.js
           - tests/complex/complex.spec.js
   schedule:
-    - cron: '0 3 * * *'
+    - cron: "0 3 * * *"
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+
       - name: Install dependencies
         run: npm ci
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-      - name: Build Test Command
-        id: cmd
+
+      - name: Decide Test Scope
+        id: scope
         shell: bash
         run: |
           set -euo pipefail
-          TEST_CMD="npx playwright test"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TEST_CMD="$TEST_CMD --project=${{ github.event.inputs.browser }}"
+
+          EVENT_NAME="${{ github.event_name }}"
+          HEAD_SHA="${{ github.sha }}"
+          BASE_SHA=""
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            TEST_CMD="npx playwright test --project=${{ github.event.inputs.browser }}"
             if [[ "${{ github.event.inputs.spec }}" != "all" ]]; then
               TEST_CMD="$TEST_CMD ${{ github.event.inputs.spec }}"
             fi
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=$TEST_CMD" >> "$GITHUB_OUTPUT"
+            echo "reason=Manual run: browser/spec selection" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
+            echo "reason=Scheduled run: full regression" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
+            echo "reason=Missing base commit: full regression" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=" >> "$GITHUB_OUTPUT"
+            echo "reason=No changed files" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          RUN_ALL=false
+          SPECS=()
+
+          add_spec() {
+            SPECS+=("$1")
+          }
+
+          is_fixture_import_only_change() {
+            local file="$1"
+            local diff_lines filtered
+
+            if [[ "$file" != tests/*.spec.js && "$file" != tests/**/*.spec.js ]]; then
+              return 1
+            fi
+
+            diff_lines=$(git diff -U0 "$BASE_SHA" "$HEAD_SHA" -- "$file" | grep -E '^[+-]' | grep -Ev '^\+\+\+|^---' || true)
+            if [[ -z "$diff_lines" ]]; then
+              return 1
+            fi
+
+            filtered=$(echo "$diff_lines" | grep -Ev "^[+-]import \{ test, expect \} from '\.?\.?/fixtures/test-base\.js';$|^[+-][[:space:]]*$" || true)
+            [[ -z "$filtered" ]]
+          }
+
+          for file in "${CHANGED_FILES[@]}"; do
+            if is_fixture_import_only_change "$file"; then
+              continue
+            fi
+
+            case "$file" in
+              package.json|package-lock.json|playwright.config.js|eslint.config.mjs|.prettierrc|.github/workflows/playwright.yml)
+                RUN_ALL=true
+                ;;
+              tests/fixtures/*|utils/domSnapshot.js)
+                add_spec "tests/smoke/smoke.spec.js"
+                ;;
+              tests/network/*|modules/network/*|utils/networkManager.js)
+                add_spec "tests/network/network.spec.js"
+                ;;
+              tests/multi-user/*|modules/multi-user/*)
+                add_spec "tests/multi-user/multi-user.spec.js"
+                ;;
+              tests/fusion/*|modules/advanced/fusion/*)
+                add_spec "tests/fusion/fusion.spec.js"
+                ;;
+              tests/chaos.spec.js|modules/advanced/chaos/*)
+                add_spec "tests/chaos.spec.js"
+                ;;
+              tests/har.spec.js|modules/advanced/har/*|mock.har)
+                add_spec "tests/har.spec.js"
+                ;;
+              tests/iframe/*|pages/iframe.page.js|utils/frame.utils.js)
+                add_spec "tests/iframe/iframe.spec.js"
+                ;;
+              tests/dom/*|pages/shadow.page.js|utils/shadow.utils.js)
+                add_spec "tests/dom/shadowdom.spec.js"
+                ;;
+              tests/xpath/*|pages/xpath.page.js|utils/xpath.utils.js)
+                add_spec "tests/xpath/xpath.spec.js"
+                ;;
+              tests/complex/*|pages/complex.page.js)
+                add_spec "tests/complex/complex.spec.js"
+                ;;
+              tests/smoke/*|public/*)
+                add_spec "tests/smoke/smoke.spec.js"
+                ;;
+            esac
+          done
+
+          if [[ "$RUN_ALL" == "true" ]]; then
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
+            echo "reason=Core config/dependency changed: full regression" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ${#SPECS[@]} -eq 0 ]]; then
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=" >> "$GITHUB_OUTPUT"
+            echo "reason=No impacted Playwright module" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          UNIQUE_SPECS=$(printf "%s\n" "${SPECS[@]}" | sort -u)
+          TEST_CMD="npx playwright test"
+          while IFS= read -r spec; do
+            [[ -n "$spec" ]] && TEST_CMD="$TEST_CMD $spec"
+          done <<< "$UNIQUE_SPECS"
+
+          echo "run_tests=true" >> "$GITHUB_OUTPUT"
           echo "test_cmd=$TEST_CMD" >> "$GITHUB_OUTPUT"
+          echo "reason=Scoped run for changed modules" >> "$GITHUB_OUTPUT"
+
       - name: Run Playwright tests
-        run: ${{ steps.cmd.outputs.test_cmd }}
+        if: ${{ steps.scope.outputs.run_tests == 'true' }}
+        shell: bash
+        run: |
+          CMD="${{ steps.scope.outputs.test_cmd }}"
+          echo "Running: $CMD"
+          eval "$CMD"
+
+      - name: Skip Note
+        if: ${{ steps.scope.outputs.run_tests != 'true' }}
+        run: |
+          echo "Skipping Playwright run. Reason: ${{ steps.scope.outputs.reason }}"
+
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.scope.outputs.run_tests == 'true' }}
         with:
           name: playwright-report
           path: playwright-report/
