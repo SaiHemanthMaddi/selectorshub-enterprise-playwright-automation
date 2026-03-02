@@ -1,3 +1,5 @@
+import { debugLog } from '../../utils/debugLogger.js';
+
 export function attachApiLogger(page) {
     page.on('response', async response => {
         const url = response.url();
@@ -5,9 +7,9 @@ export function attachApiLogger(page) {
         if (url.includes('/api')) {
             try {
                 const body = await response.json();
-                console.log(`API: ${url}`, body);
+                debugLog(`API: ${url}`, body);
             } catch (error) {
-                console.log(`Failed to parse API response for URL: ${url}`, error);
+                debugLog(`Failed to parse API response for URL: ${url}`, error);
             }
         }
     });

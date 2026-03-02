@@ -94,8 +94,7 @@ test.describe('@multiuser Multi-User Module', () => {
         await closeUsers(users);
     });
 
-    test('@multiuser Concurrent approval overwrite', async ({ browser }) => {
-        test.skip(!!process.env.CI, 'Temporarily disabled in CI due to cross-browser flakiness');
+    test('@flaky @multiuser Concurrent approval overwrite', async ({ browser }) => {
         const users = await createUsers(browser, ['admin1', 'admin2']);
 
         const a1 = users.admin1.page;

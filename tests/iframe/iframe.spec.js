@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/test-base.js';
+import { debugLog } from '../../utils/debugLogger.js';
 
 async function waitForFrame(page, predicate, timeout = 15000) {
     await expect
@@ -29,7 +30,7 @@ test.describe('@iframe Iframe Scenario - Core Tests', () => {
         await expect.poll(() => page.frames().length, { timeout: 15000 }).toBeGreaterThan(1);
 
         const frames = page.frames();
-        console.log(`Total frames: ${frames.length}`);
+        debugLog(`Total frames: ${frames.length}`);
     });
 
     test('Access Level 1 iframe - pact1', async ({ page }) => {

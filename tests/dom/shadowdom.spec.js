@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures/test-base.js';
 import { ShadowPage } from '../../pages/shadow.page';
 import { getFrameInsideShadow } from '../../utils/shadow.utils';
+import { debugLog } from '../../utils/debugLogger.js';
 
 test.skip(
   ({ browserName }) => browserName === 'firefox',
@@ -62,7 +63,7 @@ test.describe('@shadow Shadow DOM Module', () => {
   });
 
   test('Closed Shadow DOM limitation', async () => {
-    console.log(`
+    debugLog(`
       Closed shadow roots cannot be accessed by Playwright or Selenium.
       Reason: shadowRoot.mode = "closed"
       Only browser DevTools hacks exist (not real automation).

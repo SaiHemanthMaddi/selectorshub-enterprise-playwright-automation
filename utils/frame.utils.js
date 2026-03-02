@@ -1,5 +1,7 @@
+import { debugLog } from './debugLogger.js';
+
 export async function logAllFrames(page) {
-    page.frames().forEach(f => console.log(f.url()));
+    page.frames().forEach(f => debugLog(f.url()));
 }
 
 export function getFrameByUrl(page, partialUrl) {

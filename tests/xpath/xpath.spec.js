@@ -8,8 +8,9 @@ import { test, expect } from '../fixtures/test-base.js';
 test.skip(({ browserName }) => browserName === 'webkit', 
 'WebKit XPath instability');*/
 
-test.describe('@xpath Stable XPath Module', () => {
-    test.skip(!!process.env.CI, 'External XPath practice site is unstable in CI');
+import { debugLog } from '../../utils/debugLogger.js';
+
+test.describe('@flaky @xpath Stable XPath Module', () => {
 
 
     test.beforeEach(async ({ page }) => {
@@ -57,7 +58,7 @@ test.describe('@xpath Stable XPath Module', () => {
     test('XPath count validation', async ({ page }) => {
         const rows = page.locator('//table//tr');
         const count = await rows.count();
-        console.log(`Total table rows: ${count}`);
+        debugLog(`Total table rows: ${count}`);
         expect(count).toBeGreaterThan(5);
     });
 });
