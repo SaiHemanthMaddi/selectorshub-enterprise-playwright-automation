@@ -16,26 +16,40 @@ async function gotoWithRetry(page, path = '/', attempts = 3) {
 }
 
 async function putApprovalWithRetry(page, approved, attempts = 3) {
-    return page.evaluate(async ({ approved, attempts }) => {
-        let lastError = null;
-        for (let i = 0; i < attempts; i++) {
-            try {
-                const res = await fetch('/approval', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ approved }),
-                });
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
-                return true;
-            } catch (error) {
-                lastError = error;
-                await new Promise(resolve => setTimeout(resolve, 300));
+    let lastError = null;
+    for (let i = 0; i < attempts; i++) {
+        try {
+            const res = await page.request.put('/approval', {
+                data: { approved },
+            });
+            if (!res.ok()) {
+                throw new Error(`HTTP ${res.status()}`);
             }
+            return true;
+        } catch (error) {
+            lastError = error;
+            await page.waitForTimeout(300);
         }
-        throw lastError ?? new Error('Approval update failed');
-    }, { approved, attempts });
+    }
+    throw lastError ?? new Error('Approval update failed');
+}
+
+async function getApprovalWithRetry(page, attempts = 3) {
+    let lastError = null;
+    for (let i = 0; i < attempts; i++) {
+        try {
+            const res = await page.request.get('/approval');
+            if (!res.ok()) {
+                throw new Error(`HTTP ${res.status()}`);
+            }
+            const body = await res.json();
+            return body.approved;
+        } catch (error) {
+            lastError = error;
+            await page.waitForTimeout(300);
+        }
+    }
+    throw lastError ?? new Error('Approval read failed');
 }
 
 test.describe('@multiuser Multi-User Module', () => {
@@ -130,10 +144,7 @@ test.describe('@multiuser Multi-User Module', () => {
                 putApprovalWithRetry(a2, false),
             ]);
 
-            const final = await a1.evaluate(async () => {
-                const res = await fetch('/approval');
-                return (await res.json()).approved;
-            });
+            const final = await getApprovalWithRetry(a1);
 
             expect(typeof final).toBe('boolean');
         } finally {

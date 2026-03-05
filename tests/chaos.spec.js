@@ -12,7 +12,7 @@ test.describe('@chaos Network Chaos Module', () => {
         const context = await browser.newContext();
         const page = await context.newPage();
 
-        await injectRandomLatency(context, 1200, '**/users');
+        await injectRandomLatency(context, 1200, '**/users', 150);
 
         await page.goto('/');
         const start = Date.now();

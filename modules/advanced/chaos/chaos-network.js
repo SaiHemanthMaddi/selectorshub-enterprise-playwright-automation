@@ -1,7 +1,8 @@
 // Random latency injector
-export async function injectRandomLatency(context, maxMs = 3000, urlPattern = '**/users') {
+export async function injectRandomLatency(context, maxMs = 3000, urlPattern = '**/users', minMs = 0) {
     await context.route(urlPattern, async route => {
-        const delay = Math.random() * maxMs;
+        const boundedMin = Math.max(0, Math.min(minMs, maxMs));
+        const delay = boundedMin + Math.random() * (maxMs - boundedMin);
         await new Promise(r => setTimeout(r, delay));
         await route.continue();
     });
