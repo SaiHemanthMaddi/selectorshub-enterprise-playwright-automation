@@ -140,7 +140,8 @@ jobs:
 
       - name: Skip Note
         if: steps.scope.outputs.run_tests != 'true'
-        run: echo "Skipping Playwright run. Reason: ${{ steps.scope.outputs.reason }}"
+        run: |
+          echo "Skipping Playwright run. Reason: ${{ steps.scope.outputs.reason }}"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && steps.scope.outputs.run_tests == 'true' }}
         with:
