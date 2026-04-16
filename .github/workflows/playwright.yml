@@ -20,7 +20,7 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      PLAYWRIGHT_ENABLE_REPORTING: 'false'
+      PLAYWRIGHT_ENABLE_REPORTING: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
