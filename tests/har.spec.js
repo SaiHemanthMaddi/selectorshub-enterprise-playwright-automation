@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { createHarContext } from '../modules/advanced/har/har-replay.js';
 
 test.describe('@har HAR Replay Module', () => {
+    test.describe.configure({ mode: 'serial' });
 
     test('@har Offline replay works', async ({ browser }) => {
         const context = await createHarContext(browser, 'mock.har');

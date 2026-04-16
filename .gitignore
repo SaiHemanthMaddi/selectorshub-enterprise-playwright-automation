@@ -3,6 +3,7 @@ playwright-report
 allure-results
 allure-report
 test-results
+mock*.har
 .env
 .vscode
 .DS_Store
