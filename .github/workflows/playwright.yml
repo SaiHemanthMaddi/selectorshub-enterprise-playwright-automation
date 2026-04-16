@@ -7,10 +7,20 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 3 * * *'
+permissions:
+  contents: read
+  id-token: write
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_SERVICE_URL: ${{ secrets.PLAYWRIGHT_SERVICE_URL }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      PLAYWRIGHT_ENABLE_REPORTING: 'false'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,10 +39,15 @@ jobs:
           set -euo pipefail
 
           EVENT_NAME="${{ github.event_name }}"
+          BASE_CMD="npx playwright test"
+
+          if [[ -n "${PLAYWRIGHT_SERVICE_URL:-}" ]]; then
+            BASE_CMD="$BASE_CMD -c playwright.service.config.js --workers=20"
+          fi
 
           if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
-            echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
             echo "reason=Scheduled/manual run -> full regression" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -48,7 +63,7 @@ jobs:
 
           if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
-            echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
             echo "reason=No valid base SHA -> full regression" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -110,7 +125,7 @@ jobs:
 
           if [[ "$RUN_ALL" == "true" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
-            echo "test_cmd=npx playwright test" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
             echo "reason=Core config/dependency change -> full regression" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -122,7 +137,7 @@ jobs:
             exit 0
           fi
 
-          TEST_CMD="npx playwright test"
+          TEST_CMD="$BASE_CMD"
           for spec in "${!SPEC_SET[@]}"; do
             TEST_CMD="$TEST_CMD $spec"
           done
@@ -130,6 +145,20 @@ jobs:
           echo "run_tests=true" >> "$GITHUB_OUTPUT"
           echo "test_cmd=$TEST_CMD" >> "$GITHUB_OUTPUT"
           echo "reason=Changed module scoped run" >> "$GITHUB_OUTPUT"
+
+      - name: Azure Login With Credentials
+        if: steps.scope.outputs.run_tests == 'true' && env.PLAYWRIGHT_SERVICE_URL != '' && env.AZURE_CREDENTIALS != ''
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure Login With OIDC
+        if: steps.scope.outputs.run_tests == 'true' && env.PLAYWRIGHT_SERVICE_URL != '' && env.AZURE_CREDENTIALS == '' && env.AZURE_CLIENT_ID != '' && env.AZURE_TENANT_ID != '' && env.AZURE_SUBSCRIPTION_ID != ''
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Run Playwright tests
         if: steps.scope.outputs.run_tests == 'true'
