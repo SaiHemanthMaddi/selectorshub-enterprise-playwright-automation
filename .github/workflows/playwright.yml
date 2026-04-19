@@ -5,6 +5,34 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      test_spec:
+        description: 'Select Spec File to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - tests/complex/complex.spec.js
+          - tests/dom/shadowdom.spec.js
+          - tests/fusion/fusion.spec.js
+          - tests/iframe/iframe.spec.js
+          - tests/multi-user/multi-user.spec.js
+          - tests/network/network.spec.js
+          - tests/smoke/smoke.spec.js
+          - tests/xpath/xpath.spec.js
+          - tests/chaos.spec.js
+          - tests/har.spec.js
+      browser:
+        description: 'Select Browser'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
   schedule:
     - cron: '0 3 * * *'
 
