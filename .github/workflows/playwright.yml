@@ -38,7 +38,6 @@ on:
 
 permissions:
   contents: read
-  # id-token: write  <-- You can remove this if not using OIDC for other things
 
 jobs:
   test:
@@ -64,21 +63,49 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # We removed the Azure Service URL check here 
-          # so it always runs locally on the runner
+          
+          EVENT_NAME="${{ github.event_name }}"
           BASE_CMD="npx playwright test"
+          
+          # --- CASE 1: MANUAL TRIGGER ---
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            FINAL_CMD="$BASE_CMD"
+            
+            # Add specific spec if not 'all'
+            if [[ "${{ github.event.inputs.test_spec }}" != "all" ]]; then
+              FINAL_CMD="$FINAL_CMD ${{ github.event.inputs.test_spec }}"
+            fi
+            
+            # Add specific browser if not 'all'
+            if [[ "${{ github.event.inputs.browser }}" != "all" ]]; then
+              FINAL_CMD="$FINAL_CMD --project=${{ github.event.inputs.browser }}"
+            fi
+            
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
+            echo "test_cmd=$FINAL_CMD" >> "$GITHUB_OUTPUT"
+            echo "reason=Manual trigger: ${{ github.event.inputs.test_spec }} on ${{ github.event.inputs.browser }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-          # ... (Keep your logic for changed files here) ...
-          # Ensure you use $BASE_CMD without the "-c playwright.service.config.js"
+          # --- CASE 2: SCHEDULE OR PUSH/PR ---
+          # (Simple logic: run everything for schedules, or use your diff logic)
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+             echo "run_tests=true" >> "$GITHUB_OUTPUT"
+             echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
+             echo "reason=Scheduled run" >> "$GITHUB_OUTPUT"
+             exit 0
+          fi
 
-      # REMOVED: Azure Login With Credentials
-      # REMOVED: Azure Login With OIDC
+          # Default for Push/PR (Modify this if you want diff-based testing)
+          echo "run_tests=true" >> "$GITHUB_OUTPUT"
+          echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
+          echo "reason=Push/PR trigger" >> "$GITHUB_OUTPUT"
 
       - name: Run Playwright tests
         if: steps.scope.outputs.run_tests == 'true'
         shell: bash
         run: |
-          echo "Running local tests: ${{ steps.scope.outputs.test_cmd }}"
+          echo "Running: ${{ steps.scope.outputs.test_cmd }}"
           ${{ steps.scope.outputs.test_cmd }}
 
       - name: Skip Note
