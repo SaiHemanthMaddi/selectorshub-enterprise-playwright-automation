@@ -1,5 +1,6 @@
 name: Playwright Tests
-on:
+
+'on':
   push:
     branches: [main, master]
   pull_request:
@@ -7,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       test_spec:
-        description: 'Select Spec File to run'
+        description: "Select spec file to run"
         required: true
-        default: 'all'
+        default: all
         type: choice
         options:
           - all
@@ -24,9 +25,9 @@ on:
           - tests/chaos.spec.js
           - tests/har.spec.js
       browser:
-        description: 'Select Browser'
+        description: "Select browser"
         required: true
-        default: 'all'
+        default: all
         type: choice
         options:
           - all
@@ -34,88 +35,180 @@ on:
           - firefox
           - webkit
   schedule:
-    - cron: '0 3 * * *'
+    - cron: "0 3 * * *"
 
 permissions:
   contents: read
 
+concurrency:
+  group: playwright-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  test-pr:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node: [20, 22]
+        browser: [chromium]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node }}
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright Browsers
+      - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Decide Test Scope
-        id: scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          
-          EVENT_NAME="${{ github.event_name }}"
-          BASE_CMD="npx playwright test"
-          
-          # --- CASE 1: MANUAL TRIGGER ---
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            FINAL_CMD="$BASE_CMD"
-            
-            # Add specific spec if not 'all'
-            if [[ "${{ github.event.inputs.test_spec }}" != "all" ]]; then
-              FINAL_CMD="$FINAL_CMD ${{ github.event.inputs.test_spec }}"
-            fi
-            
-            # Add specific browser if not 'all'
-            if [[ "${{ github.event.inputs.browser }}" != "all" ]]; then
-              FINAL_CMD="$FINAL_CMD --project=${{ github.event.inputs.browser }}"
-            fi
-            
-            echo "run_tests=true" >> "$GITHUB_OUTPUT"
-            echo "test_cmd=$FINAL_CMD" >> "$GITHUB_OUTPUT"
-            echo "reason=Manual trigger: ${{ github.event.inputs.test_spec }} on ${{ github.event.inputs.browser }}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+      - name: Run Playwright tests
+        run: npx playwright test --project=${{ matrix.browser }}
 
-          # --- CASE 2: SCHEDULE OR PUSH/PR ---
-          # (Simple logic: run everything for schedules, or use your diff logic)
-          if [[ "$EVENT_NAME" == "schedule" ]]; then
-             echo "run_tests=true" >> "$GITHUB_OUTPUT"
-             echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
-             echo "reason=Scheduled run" >> "$GITHUB_OUTPUT"
-             exit 0
-          fi
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-pr-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.browser }}
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 30
 
-          # Default for Push/PR (Modify this if you want diff-based testing)
-          echo "run_tests=true" >> "$GITHUB_OUTPUT"
-          echo "test_cmd=$BASE_CMD" >> "$GITHUB_OUTPUT"
-          echo "reason=Push/PR trigger" >> "$GITHUB_OUTPUT"
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results-pr-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.browser }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  test-nightly:
+    if: github.event_name == 'schedule'
+    timeout-minutes: 90
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22]
+        browser: [chromium, firefox, webkit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright browsers (Windows)
+        if: runner.os == 'Windows'
+        run: npx playwright install
 
       - name: Run Playwright tests
-        if: steps.scope.outputs.run_tests == 'true'
+        run: npx playwright test --project=${{ matrix.browser }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-nightly-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.browser }}
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results-nightly-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.browser }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  test-manual:
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Resolve test command
+        id: scope
+        shell: bash
+        env:
+          INPUT_TEST_SPEC: ${{ github.event.inputs.test_spec }}
+          INPUT_BROWSER: ${{ github.event.inputs.browser }}
+        run: |
+          set -euo pipefail
+
+          TEST_CMD="npx playwright test"
+          if [[ -n "${INPUT_TEST_SPEC:-}" && "$INPUT_TEST_SPEC" != "all" ]]; then
+            TEST_CMD="$TEST_CMD $INPUT_TEST_SPEC"
+          fi
+          if [[ -n "${INPUT_BROWSER:-}" && "$INPUT_BROWSER" != "all" ]]; then
+            TEST_CMD="$TEST_CMD --project=$INPUT_BROWSER"
+          fi
+
+          echo "test_cmd=$TEST_CMD" >> "$GITHUB_OUTPUT"
+
+      - name: Run Playwright tests
         shell: bash
         run: |
           echo "Running: ${{ steps.scope.outputs.test_cmd }}"
           ${{ steps.scope.outputs.test_cmd }}
 
-      - name: Skip Note
-        if: steps.scope.outputs.run_tests != 'true'
-        run: |
-          echo "Skipping Playwright run. Reason: ${{ steps.scope.outputs.reason }}"
-
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() && steps.scope.outputs.run_tests == 'true' }}
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-manual
           path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results-manual
+          path: test-results/
+          if-no-files-found: ignore
           retention-days: 30

@@ -8,6 +8,11 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
+    "sonar:start": "\"C:\\Program Files\\sonarqube-26.4.0.121862\\bin\\windows-x86-64\\StartSonar.bat\"",
+    "sonar:service:install": "\"C:\\Program Files\\sonarqube-26.4.0.121862\\bin\\windows-x86-64\\SonarService.bat\" install",
+    "sonar:service:start": "\"C:\\Program Files\\sonarqube-26.4.0.121862\\bin\\windows-x86-64\\SonarService.bat\" start",
+    "sonar:service:stop": "\"C:\\Program Files\\sonarqube-26.4.0.121862\\bin\\windows-x86-64\\SonarService.bat\" stop",
+    "sonar:scan": "sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.token=%SONAR_TOKEN%",
     "allure:generate": "allure generate ./allure-results --clean",
     "allure:open": "allure open ./allure-report",
     "allure:report": "npm run allure:generate && npm run allure:open",
@@ -16,7 +21,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "clean:allure": "rm -rf allure-results allure-report",
-    "mock:server": "json-server --watch mock-db.json --host 127.0.0.1 --port 3000 --static public"
+    "mock:server": "json-server --watch mock-db.json --host 127.0.0.1 --port 3000 --static public",
+    "test:coverage": "nyc npx playwright test"
   },
   "keywords": [],
   "type": "module",
@@ -30,6 +36,7 @@
     "eslint": "^10.0.2",
     "globals": "^17.3.0",
     "json-server": "^0.17.4",
+    "nyc": "^18.0.0",
     "prettier": "^3.8.1"
   }
 }

@@ -105,7 +105,6 @@ test.describe('@fusion Multi-User Network Fusion', () => {
     test('@fusion Browser-level injection', async ({ browser }) => {
         const users = await createFusionUsers(browser);
 
-        const adminCtx = users.admin.context;
         const userCtx = users.user.context;
 
         const admin = users.admin.page;

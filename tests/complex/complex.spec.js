@@ -5,7 +5,7 @@ test.skip(({ browserName }) => browserName === 'firefox', 'Firefox CSS selector 
 
 test.describe('@complex Complex Elements Module', () => {
 
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async () => {
         test.setTimeout(60000);
     });
 

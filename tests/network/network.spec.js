@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import { mockUsersApi, mockServerError, slowApi } from '../../modules/network/mock-api';
 import { injectProduct } from '../../modules/network/intercept-api';
 import { blockImages } from '../../modules/network/block-requests';
-import { attachApiLogger } from '../../modules/network/api-logger';
 
 test.describe('@network Network Module', () => {
 

@@ -1,5 +1,3 @@
-import { safeClick, safeType } from '../utils/waits.utils.js';
-
 export class ComplexPage {
     constructor(page) {
         this.page = page;
@@ -20,7 +18,7 @@ export class ComplexPage {
     }
 
     get unicodeText() {
-        this.unicodeText = page.locator('#unicode-output');
+        return this.page.locator('#unicode-output');
     }
 
     get multilingualText() {
