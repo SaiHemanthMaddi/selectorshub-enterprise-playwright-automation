@@ -158,3 +158,30 @@ See:
 ## License
 
 ISC
+
+## SonarQube (Local)
+
+This repository includes `sonar-project.properties` and npm scripts for local SonarQube analysis.
+
+Start SonarQube:
+
+```bash
+npm run sonar:start
+```
+
+Optional Windows service mode:
+
+```bash
+npm run sonar:service:install
+npm run sonar:service:start
+npm run sonar:service:stop
+```
+
+Run scan from this project terminal:
+
+```powershell
+$env:SONAR_TOKEN="your_token_here"
+npm run sonar:scan
+```
+
+Note: `sonar-scanner` CLI must be installed and available in PATH.
